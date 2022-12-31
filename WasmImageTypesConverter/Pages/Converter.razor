@@ -1,0 +1,44 @@
+﻿@using Microsoft.AspNetCore.Components.Web
+@using System.Drawing
+@using System.Drawing.Imaging
+@inject HttpClient Http
+@inject IJSRuntime JS
+
+
+@page "/converter"
+
+<PageTitle>Converter</PageTitle>
+
+<h1>Converter, please wait for 5 seconds to make sure the library is loaded</h1>
+
+<button class="btn btn-primary" @onclick="IncrementCount">Click me</button>
+
+@code {
+    private IJSInProcessObjectReference module;
+    
+    protected override async Task OnInitializedAsync()
+    {
+        await JS.InvokeAsync<IJSInProcessObjectReference>("import", "./heic2any.min.js");
+        module = await JS.InvokeAsync<IJSInProcessObjectReference>("import", "./interop.js");
+      
+    }
+    
+    private async Task IncrementCount()
+    {
+        var inputBytes = await Http.GetByteArrayAsync("sample1.heic");
+        var inputBase64 = Convert.ToBase64String(inputBytes);
+        //var blob = Bytes2String(content);
+        
+        var basedOutput= await module.InvokeAsync<string>("convert", inputBase64);
+        var bytesOutput =  Convert.FromBase64String(basedOutput);
+        
+        //string rootpath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "wwwroot"
+        //File.WriteAllBytes( Path.Combine(rootpath, "output.jpeg"), bytes);
+        
+        await module.InvokeVoidAsync(
+            "downloadBase64File",
+            basedOutput,
+            "image/jpeg",
+            "output.jpeg");
+    }
+}
